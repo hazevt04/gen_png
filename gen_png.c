@@ -9,8 +9,8 @@
 #define PREC 10
 
 // Let's let val be 687. MAIN COLOR is val/768
-#define OTHER_COLOR 1.0              
-#define MAIN_COLOR  0.0               
+#define OTHER_COLOR 0.25              
+#define MAIN_COLOR  0.75               
 
 // This takes the float value 'val', converts it to red, green & blue values, then
 // sets those values into the image memory buffer location pointed to by 'ptr'
@@ -146,7 +146,7 @@ void gen_square( double* pixels, double width, double height ) {
 
 
 void gen_circle( double* pixels, double width, double height, 
-   double radius, double x0, double y0 
+   double radius, double x0, double y0, double color 
    ) {
    
    // Write to pixels
@@ -158,9 +158,7 @@ void gen_circle( double* pixels, double width, double height,
 
          int idx = ( int )( row * width + col );
          if ( t_radius <= radius ) {
-            pixels[ idx ] = MAIN_COLOR;
-         } else {
-            pixels[ idx ] = OTHER_COLOR;
+            pixels[ idx ] = color;
          }
       } // for col
    } // for row
@@ -255,8 +253,6 @@ int main( int argc, char **argv ) {
 		exit( EXIT_FAILURE );
 	}
 
-
-   
    char title[64];
    strcpy( title, "Circle" );
 
@@ -270,8 +266,20 @@ int main( int argc, char **argv ) {
    double* pixels = calloc( ( height * width ),  sizeof( double ) ); 
    
    printf( "Generating data for %s...\n", title ); 
-   gen_circle( pixels, width, height, radius, x0, y0 );
+   for( int i = 0; i < ( width * height ); i++ ) {
+      pixels[i] = 1.25;
+   } 
 
+   gen_circle( pixels, width, height, radius, x0, y0, MAIN_COLOR );
+   
+   gen_circle( pixels, width, height, radius/2, x0, y0, OTHER_COLOR );
+   
+   gen_circle( pixels, width, height, radius/4, x0, y0, MAIN_COLOR );
+   
+   gen_circle( pixels, width, height, radius/8, x0, y0, OTHER_COLOR );
+
+   gen_circle( pixels, width, height, radius/16, x0, y0, MAIN_COLOR );
+   
    printf( "Saving PNG to %s...\n", outfile ); 
    write_image( outfile, width, height, pixels, title );
    printf( "DONE.\n\n" ); 
