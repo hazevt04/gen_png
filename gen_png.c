@@ -168,6 +168,13 @@ void gen_circle( double* pixels, double width, double height,
 } // end of gen_circle()
 
 
+#     define VERBOSE_PRINTF(fmt, ...) { \
+         if ( verbose_flag ) { \
+            printf(fmt, ##__VA_ARGS__); \
+         } \
+      }
+
+
 static int verbose_flag;
 
 
@@ -175,27 +182,44 @@ static struct option long_options[] = {
    { "width", required_argument, NULL, 'w' },
    { "height", required_argument, NULL, 'h' },
    { "radius", required_argument, NULL, 'r' },
+   { "outfile", optional_argument, NULL, 'o' },
    { "verbose", no_argument, &verbose_flag, 1 },
    { 0, 0, 0, 0 }
 };   
 
 void usage( char* argv ) {
    printf( "Usage %s <options>\n", argv );
-   printf( "width, w\n" );  
-   printf( "height, h\n" );  
-   printf( "radius, h\n" );  
-   printf( "verbose, v\n" );  
+   printf( "options is one of:" ); 
+   printf( "%7s %3s %s\n", 
+      "--width", "-w", "width of the image to be generated." );  
+   printf( "%7s %3s %s\n", 
+      "--height", "-h", "height of the image to be generated." );  
+   printf( "%7s %3s %s\n", 
+      "--radius", "-r", "radius of the circle in the generated image." );  
+   printf( "%7s %3s %s\n", 
+      "--outfile", "-o", "name for the PNG file generated (optional)." );  
+   printf( "%7s %3s %s\n\n", 
+      "--verbose", "-v", "show more display statements (optional)" );  
 }
 
 int main( int argc, char **argv ) {
    double width = 0.0;
    double height = 0.0;
    double radius = 0.0;
+   char outfile[64];
    char* endptr = NULL;
 
    char ch;
-   while( (ch = getopt_long( argc, argv, "w:h:r:v", long_options, NULL )) != -1 ) {
+   int option_index = 0;
+   strcpy( outfile, "circle.png" );
+   while( (ch = getopt_long( argc, argv, "w:h:r:o:v", long_options, &option_index )) != -1 ) {
       switch( ch ) {
+         case 0:
+            // For verbose flag 
+            // There is no argument after the flag in this case
+            if ( long_options[option_index].flag != 0 ) {
+               break;
+            }
          case 'w':
             width = strtod( optarg, &endptr );
             break;
@@ -205,32 +229,53 @@ int main( int argc, char **argv ) {
          case 'r':
             radius = strtod( optarg, &endptr );
             break;
+         case 'o':
+            strcpy( outfile, optarg );
+            break;
          default:
-            printf( "ERROR: option %c invalid", ch );
+            printf( "ERROR: option %c invalid\n", ch );
             usage( argv[0] ); 
-            break; 
+            exit( EXIT_FAILURE );
       }
    }
+
+	if ( width == 0.0 ) {
+		printf( "ERROR: width is 0.0. Invalid input.\n" );
+		usage( argv[0] );
+		exit( EXIT_FAILURE );
+	}
+	if ( height == 0.0 ) {
+		printf( "ERROR: height is 0.0. Invalid input.\n" );
+		usage( argv[0] );
+		exit( EXIT_FAILURE );
+	}
+	if ( radius == 0.0 ) {
+		printf( "ERROR: radius is 0.0. Invalid input.\n" );
+		usage( argv[0] );
+		exit( EXIT_FAILURE );
+	}
+
+
+   
+   char title[64];
+   strcpy( title, "Circle" );
 
    double y0 = height/2.0;
    double x0 = width/2.0;
 
-   printf( "The center is at %f, %f\n", x0, y0 ); 
-   printf( "Radius is %f\n", radius ); 
-   printf( "There will be %f points on the x-axis\n", ( width ) );  
-   printf( "There will be %f points on the y-axis\n", ( height ) );  
+   VERBOSE_PRINTF( "The center is at %f, %f\n", x0, y0 ); 
+   VERBOSE_PRINTF( "Radius is %f\n", radius ); 
+   VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
+   VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
    double* pixels = calloc( ( height * width ),  sizeof( double ) ); 
    
+   printf( "Generating data for %s...\n", title ); 
    gen_circle( pixels, width, height, radius, x0, y0 );
 
-   char filename[64];
-   char title[64];
-   strcpy( filename, "circle.png" );
-   strcpy( title, "Circle" );
-   printf( "Saving PNG...\n" ); 
-   write_image( filename, width, height, pixels, title );
-   printf( "DONE. Result is in %s\n", filename ); 
+   printf( "Saving PNG to %s...\n", outfile ); 
+   write_image( outfile, width, height, pixels, title );
+   printf( "DONE.\n\n" ); 
 
-   return 0;
+	exit( EXIT_SUCCESS );
 }
 
