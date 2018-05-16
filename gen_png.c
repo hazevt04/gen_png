@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include <png.h>
@@ -9,13 +10,14 @@
 #define PREC 10
 
 // Let's let val be 687. MAIN COLOR is val/768
-#define OTHER_COLOR 0.25              
-#define MAIN_COLOR  0.75               
-
 // This takes the float value 'val', converts it to red, green & blue values, then
 // sets those values into the image memory buffer location pointed to by 'ptr'
-void set_rgb(png_byte *ptr, double val)
+void set_rgb(png_byte *ptr, uint32_t val )
 {
+   ptr[0] = ( val >> 16 ) & 0xFFUL;   
+   ptr[1] = ( val >> 8 ) & 0xFFUL;   
+   ptr[2] = ( val ) & 0xFFUL;   
+   /*
    int v = (int)(val * 767);
    if (v < 0) v = 0;
    if (v > 767) v = 767;
@@ -34,14 +36,14 @@ void set_rgb(png_byte *ptr, double val)
    else {
       ptr[0] = offset; 
       ptr[1] = 255-offset; 
-      //ptr[2] = 0;
-      ptr[2] = 255;
+      ptr[2] = 0;
    }
+   */
 }
 
 // This function actually writes out the PNG image file. The string 'title' is
 // also written into the image file
-int write_image(char* filename, int width, int height, double *buffer, char* title)
+int write_image(char* filename, int width, int height, uint32_t* buffer, char* title)
 {
    int code = 0;
    FILE *fp = NULL;
@@ -123,7 +125,7 @@ int write_image(char* filename, int width, int height, double *buffer, char* tit
 } // end of write_image()
 
 
-void gen_square( double* pixels, double width, double height ) {
+void gen_square( uint32_t* pixels, double width, double height, uint32_t color ) {
    
    for( double row = 0; row < height; row++ ) {
       for( double col = 0; col < width; col++ ) {
@@ -135,18 +137,16 @@ void gen_square( double* pixels, double width, double height ) {
             ( col > 1250 ) && 
             ( col < 3750 )
          ) {
-            pixels[ idx ] = MAIN_COLOR;
-         } else {
-            pixels[ idx ] = OTHER_COLOR;
-         }
+            pixels[ idx ] =  color;
+         } 
       } // for double col
    } // for double row
 
 } // end of gen_square()
 
 
-void gen_circle( double* pixels, double width, double height, 
-   double radius, double x0, double y0, double color 
+void gen_circle( uint32_t* pixels, double width, double height, 
+   double radius, double x0, double y0, uint32_t color 
    ) {
    
    // Write to pixels
@@ -180,6 +180,7 @@ static struct option long_options[] = {
    { "width", required_argument, NULL, 'w' },
    { "height", required_argument, NULL, 'h' },
    { "radius", required_argument, NULL, 'r' },
+   { "color", optional_argument, NULL, 'c' },
    { "outfile", optional_argument, NULL, 'o' },
    { "verbose", no_argument, &verbose_flag, 1 },
    { 0, 0, 0, 0 }
@@ -192,8 +193,10 @@ void usage( char* argv ) {
       "--width", "-w", "width of the image to be generated." );  
    printf( "%7s %3s %s\n", 
       "--height", "-h", "height of the image to be generated." );  
-   printf( "%7s %3s %s\n", 
+   printf( "%7s %3s %s\n",
       "--radius", "-r", "radius of the circle in the generated image." );  
+   printf( "%7s %3s %s\n",
+      "--color", "-c", "packed RGB (rightmost 24 bits of 32-bit) value for the color of the circle in the generated image. (optional)" );  
    printf( "%7s %3s %s\n", 
       "--outfile", "-o", "name for the PNG file generated (optional)." );  
    printf( "%7s %3s %s\n\n", 
@@ -204,6 +207,9 @@ int main( int argc, char **argv ) {
    double width = 0.0;
    double height = 0.0;
    double radius = 0.0;
+   // Default circle 
+   uint32_t color = 0;
+
    char outfile[64];
    char* endptr = NULL;
 
@@ -226,6 +232,9 @@ int main( int argc, char **argv ) {
             break;
          case 'r':
             radius = strtod( optarg, &endptr );
+            break;
+         case 'c':
+            color = (uint32_t)strtoul( optarg, &endptr, 16 );
             break;
          case 'o':
             strcpy( outfile, optarg );
@@ -263,22 +272,29 @@ int main( int argc, char **argv ) {
    VERBOSE_PRINTF( "Radius is %f\n", radius ); 
    VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
    VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
-   double* pixels = calloc( ( height * width ),  sizeof( double ) ); 
+   uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
    
+   uint32_t black = 0;
+   uint32_t white = 0x00FFFFFFUL;
+   
+   double line_thickness = 40;
    printf( "Generating data for %s...\n", title ); 
    for( int i = 0; i < ( width * height ); i++ ) {
-      pixels[i] = 1.25;
+      pixels[i] = white;
    } 
 
-   gen_circle( pixels, width, height, radius, x0, y0, MAIN_COLOR );
-   
-   gen_circle( pixels, width, height, radius/2, x0, y0, OTHER_COLOR );
-   
-   gen_circle( pixels, width, height, radius/4, x0, y0, MAIN_COLOR );
-   
-   gen_circle( pixels, width, height, radius/8, x0, y0, OTHER_COLOR );
 
-   gen_circle( pixels, width, height, radius/16, x0, y0, MAIN_COLOR );
+   gen_circle( pixels, width, height, radius, x0, y0, color );
+   
+   gen_circle( pixels, width, height, ( radius-line_thickness ), x0, y0, white );
+   
+   gen_circle( pixels, width, height, radius/2, x0, y0, color  );
+   
+   gen_circle( pixels, width, height, ( ( radius/2 )-line_thickness ), x0, y0, white );
+   
+   //gen_circle( pixels, width, height, radius/8, x0, y0, white );
+
+   //gen_circle( pixels, width, height, radius/16, x0, y0, blue );
    
    printf( "Saving PNG to %s...\n", outfile ); 
    write_image( outfile, width, height, pixels, title );
