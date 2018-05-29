@@ -180,7 +180,7 @@ static struct option long_options[] = {
    { "width", required_argument, NULL, 'w' },
    { "height", required_argument, NULL, 'h' },
    { "radius", required_argument, NULL, 'r' },
-   { "color", optional_argument, NULL, 'c' },
+   { "color",  optional_argument, NULL, 'c' },
    { "outfile", optional_argument, NULL, 'o' },
    { "verbose", no_argument, &verbose_flag, 1 },
    { 0, 0, 0, 0 }
@@ -213,10 +213,11 @@ int main( int argc, char **argv ) {
    char outfile[64];
    char* endptr = NULL;
 
-   char ch;
+   int ch;
    int option_index = 0;
    strcpy( outfile, "circle.png" );
-   while( (ch = getopt_long( argc, argv, "w:h:r:o:v", long_options, &option_index )) != -1 ) {
+
+   while( (ch = getopt_long( argc, argv, "vw:h:r:c:o:", long_options, &option_index )) != -1 ) {
       switch( ch ) {
          case 0:
             // For verbose flag 
@@ -245,7 +246,7 @@ int main( int argc, char **argv ) {
             exit( EXIT_FAILURE );
       }
    }
-
+   
 	if ( width == 0.0 ) {
 		printf( "ERROR: width is 0.0. Invalid input.\n" );
 		usage( argv[0] );
@@ -270,6 +271,7 @@ int main( int argc, char **argv ) {
 
    VERBOSE_PRINTF( "The center is at %f, %f\n", x0, y0 ); 
    VERBOSE_PRINTF( "Radius is %f\n", radius ); 
+   VERBOSE_PRINTF( "Color is %6x\n", color & 0xffffff );
    VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
    VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
    uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
@@ -291,10 +293,6 @@ int main( int argc, char **argv ) {
    gen_circle( pixels, width, height, radius/2, x0, y0, color  );
    
    gen_circle( pixels, width, height, ( ( radius/2 )-line_thickness ), x0, y0, white );
-   
-   //gen_circle( pixels, width, height, radius/8, x0, y0, white );
-
-   //gen_circle( pixels, width, height, radius/16, x0, y0, blue );
    
    printf( "Saving PNG to %s...\n", outfile ); 
    write_image( outfile, width, height, pixels, title );
