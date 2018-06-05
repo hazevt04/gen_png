@@ -9,6 +9,8 @@
 
 #define PREC 10
 
+#define NUM_SQUARES 4
+
 // Let's let val be 687. MAIN COLOR is val/768
 // This takes the float value 'val', converts it to red, green & blue values, then
 // sets those values into the image memory buffer location pointed to by 'ptr'
@@ -17,28 +19,6 @@ void set_rgb(png_byte *ptr, uint32_t val )
    ptr[0] = ( val >> 16 ) & 0xFFUL;   
    ptr[1] = ( val >> 8 ) & 0xFFUL;   
    ptr[2] = ( val ) & 0xFFUL;   
-   /*
-   int v = (int)(val * 767);
-   if (v < 0) v = 0;
-   if (v > 767) v = 767;
-   int offset = v % 256;
-
-   if (v<256) {
-      ptr[0] = 0; 
-      ptr[1] = 0; 
-      ptr[2] = offset;
-   }
-   else if (v<512) {
-      ptr[0] = 0; 
-      ptr[1] = offset; 
-      ptr[2] = 255-offset;
-   }
-   else {
-      ptr[0] = offset; 
-      ptr[1] = 255-offset; 
-      ptr[2] = 0;
-   }
-   */
 }
 
 // This function actually writes out the PNG image file. The string 'title' is
@@ -125,20 +105,28 @@ int write_image(char* filename, int width, int height, uint32_t* buffer, char* t
 } // end of write_image()
 
 
-void gen_square( uint32_t* pixels, double width, double height, uint32_t color ) {
-   
+void gen_square( uint32_t* pixels, double width, double height, double side_len, double x0, double y0, uint32_t color ) {
+   double col_end = x0 + side_len;
+   double row_end = y0 + side_len;
+   printf( "x0 is %f\n", x0 ); 
+   printf( "y0 is %f\n", y0 ); 
+   printf( "row_end is %f\n", row_end ); 
+   printf( "col_end is %f\n", col_end ); 
+   printf( "width is %f\n", width ); 
+   printf( "height is %f\n", height ); 
    for( double row = 0; row < height; row++ ) {
       for( double col = 0; col < width; col++ ) {
          // Does a square
-         int idx = ( int )( row * width + col );
-         if ( 
-            ( row > 1250 ) && 
-            ( row < 3750 ) &&
-            ( col > 1250 ) && 
-            ( col < 3750 )
+         if ( ( col >= x0 ) &&
+            ( col <= col_end ) &&
+            ( row >= y0 ) &&
+            ( row <= row_end )
          ) {
+
+            int idx = ( int )( row * width + col );
+            //pixels[ idx ] =  color + ((int)col & 0xff);
             pixels[ idx ] =  color;
-         } 
+         }
       } // for double col
    } // for double row
 
@@ -206,8 +194,8 @@ void usage( char* argv ) {
 int main( int argc, char **argv ) {
    double width = 0.0;
    double height = 0.0;
-   double radius = 0.0;
-   // Default circle 
+   double side_length = 0.0;
+   
    uint32_t color = 0;
 
    char outfile[64];
@@ -215,8 +203,10 @@ int main( int argc, char **argv ) {
 
    char ch;
    int option_index = 0;
-   strcpy( outfile, "circle.png" );
-   while( (ch = getopt_long( argc, argv, "w:h:r:o:v", long_options, &option_index )) != -1 ) {
+   strcpy( outfile, "square.png" );
+   while( (ch = getopt_long( argc, argv, "w:h:s:c:o:v", 
+      long_options, &option_index )) != -1 ) {
+      
       switch( ch ) {
          case 0:
             // For verbose flag 
@@ -230,8 +220,8 @@ int main( int argc, char **argv ) {
          case 'h':
             height = strtod( optarg, &endptr );
             break;
-         case 'r':
-            radius = strtod( optarg, &endptr );
+         case 's':
+            side_length = strtod( optarg, &endptr );
             break;
          case 'c':
             color = (uint32_t)strtoul( optarg, &endptr, 16 );
@@ -256,20 +246,18 @@ int main( int argc, char **argv ) {
 		usage( argv[0] );
 		exit( EXIT_FAILURE );
 	}
-	if ( radius == 0.0 ) {
-		printf( "ERROR: radius is 0.0. Invalid input.\n" );
+	if ( side_length == 0.0 ) {
+		printf( "ERROR: side_length is 0.0. Invalid input.\n" );
 		usage( argv[0] );
 		exit( EXIT_FAILURE );
 	}
 
    char title[64];
-   strcpy( title, "Circle" );
+   strcpy( title, "Square" );
 
    double y0 = height/2.0;
    double x0 = width/2.0;
 
-   VERBOSE_PRINTF( "The center is at %f, %f\n", x0, y0 ); 
-   VERBOSE_PRINTF( "Radius is %f\n", radius ); 
    VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
    VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
    uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
@@ -277,24 +265,55 @@ int main( int argc, char **argv ) {
    uint32_t black = 0;
    uint32_t white = 0x00FFFFFFUL;
    
-   double line_thickness = 40;
    printf( "Generating data for %s...\n", title ); 
    for( int i = 0; i < ( width * height ); i++ ) {
       pixels[i] = white;
    } 
 
+   double sq_x0 = 0.10 * side_length;
+   double sq_y0 = 0.10 * side_length;
 
-   gen_circle( pixels, width, height, radius, x0, y0, color );
-   
-   gen_circle( pixels, width, height, ( radius-line_thickness ), x0, y0, white );
-   
-   gen_circle( pixels, width, height, radius/2, x0, y0, color  );
-   
-   gen_circle( pixels, width, height, ( ( radius/2 )-line_thickness ), x0, y0, white );
-   
-   //gen_circle( pixels, width, height, radius/8, x0, y0, white );
+   int colors[NUM_SQUARES] = {
+      0x6478ff,
+      0x0408ff,
+      0xcc2200,
+      0xfd2ce0
+   };
 
-   //gen_circle( pixels, width, height, radius/16, x0, y0, blue );
+   double factors[NUM_SQUARES] = {
+      .333,
+      .5,
+      .667, 
+      1.0 
+   };
+
+   double side_lengths[NUM_SQUARES];
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      side_lengths[index] = side_length/factors[index];
+      printf( "side length %d is %f\n", index, side_lengths[index] ); 
+   } 
+
+   double x0s[NUM_SQUARES];
+   x0s[0] = sq_x0;
+   printf( "x0s 0 is %f\n", x0s[0] ); 
+   for( int index = 1; index < NUM_SQUARES; index++ ) {
+      x0s[index] = sq_x0 + side_lengths[index-1] + x0s[index-1];
+      printf( "x0s %d is %f\n", index, x0s[index] ); 
+   } 
+
+   double y0s[NUM_SQUARES];
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      //y0s[index] = ( ( sq_y0 + side_lengths[index] ) * ( index + 1 ) );
+      y0s[index] = sq_y0;
+   } 
+
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      printf( "Side Length %d is %f\n", index, side_lengths[index] ); 
+      printf( "x0[%d] is %f\n", index, x0s[index] ); 
+      printf( "y0[%d] is %f\n", index, y0s[index] ); 
+      gen_square( pixels, width, height, side_lengths[index], x0s[index], 
+         y0s[index], colors[index] );
+   } 
    
    printf( "Saving PNG to %s...\n", outfile ); 
    write_image( outfile, width, height, pixels, title );
