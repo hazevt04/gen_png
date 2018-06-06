@@ -161,7 +161,7 @@ static int verbose_flag;
 static struct option long_options[] = {
    { "width", required_argument, NULL, 'w' },
    { "height", required_argument, NULL, 'h' },
-   { "radius", required_argument, NULL, 'r' },
+   { "side_length", required_argument, NULL, 's' },
    { "color", optional_argument, NULL, 'c' },
    { "outfile", optional_argument, NULL, 'o' },
    { "verbose", no_argument, &verbose_flag, 1 },
@@ -176,7 +176,7 @@ void usage( char* argv ) {
    printf( "%7s %3s %s\n", 
       "--height", "-h", "height of the image to be generated." );  
    printf( "%7s %3s %s\n",
-      "--radius", "-r", "radius of the circle in the generated image." );  
+      "--side_length", "-s", "length of a side of the largest square in the generated image." );  
    printf( "%7s %3s %s\n",
       "--color", "-c", "packed RGB (rightmost 24 bits of 32-bit) value for the color of the circle in the generated image. (optional)" );  
    printf( "%7s %3s %s\n", 
@@ -252,8 +252,6 @@ int main( int argc, char **argv ) {
    uint32_t white = 0x00FFFFFFUL;
 
    uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
-   
-   
 
    for( int i = 0; i < ( width * height ); i++ ) {
       pixels[i] = white;
