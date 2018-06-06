@@ -9,7 +9,7 @@
 
 #define PREC 10
 
-#define NUM_SQUARES 4
+#define NUM_SQUARES 5
 
 // Let's let val be 687. MAIN COLOR is val/768
 // This takes the float value 'val', converts it to red, green & blue values, then
@@ -108,12 +108,6 @@ int write_image(char* filename, int width, int height, uint32_t* buffer, char* t
 void gen_square( uint32_t* pixels, double width, double height, double side_len, double x0, double y0, uint32_t color ) {
    double col_end = x0 + side_len;
    double row_end = y0 + side_len;
-   printf( "x0 is %f\n", x0 ); 
-   printf( "y0 is %f\n", y0 ); 
-   printf( "row_end is %f\n", row_end ); 
-   printf( "col_end is %f\n", col_end ); 
-   printf( "width is %f\n", width ); 
-   printf( "height is %f\n", height ); 
    for( double row = 0; row < height; row++ ) {
       for( double col = 0; col < width; col++ ) {
          // Does a square
@@ -254,18 +248,13 @@ int main( int argc, char **argv ) {
 
    char title[64];
    strcpy( title, "Square" );
-
-   double y0 = height/2.0;
-   double x0 = width/2.0;
-
-   VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
-   VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
-   uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
-   
    uint32_t black = 0;
    uint32_t white = 0x00FFFFFFUL;
+
+   uint32_t* pixels = calloc( ( height * width ),  sizeof( uint32_t ) ); 
    
-   printf( "Generating data for %s...\n", title ); 
+   
+
    for( int i = 0; i < ( width * height ); i++ ) {
       pixels[i] = white;
    } 
@@ -274,43 +263,78 @@ int main( int argc, char **argv ) {
    double sq_y0 = 0.10 * side_length;
 
    int colors[NUM_SQUARES] = {
-      0x6478ff,
       0x0408ff,
+      0x24057c,
+      0x6478ff,
       0xcc2200,
       0xfd2ce0
    };
 
    double factors[NUM_SQUARES] = {
-      .333,
-      .5,
-      .667, 
+      3.0,
+      2.5,
+      2.0,
+      1.5, 
       1.0 
    };
+   VERBOSE_PRINTF( "There will be %f points on the x-axis\n", width );  
+   VERBOSE_PRINTF( "There will be %f points on the y-axis\n", height );  
+   VERBOSE_PRINTF( "Each side of the main square will have %d pixels\n",
+      (int)side_length );
+   VERBOSE_PRINTF( "There will be %d squares\n", NUM_SQUARES );
+
+   char color_strings[64];
+   for ( int index = 0; index  < NUM_SQUARES; index++ ) {
+      sprintf( color_strings, "%s%x%s ", color_strings, colors[index],
+         ( (index == NUM_SQUARES - 2) ? " and" : ", " ) );
+   }
+   VERBOSE_PRINTF( "The colors will be %s\n", color_strings );
+   printf( "Generating data for %s...\n", title ); 
 
    double side_lengths[NUM_SQUARES];
    for( int index = 0; index < NUM_SQUARES; index++ ) {
       side_lengths[index] = side_length/factors[index];
-      printf( "side length %d is %f\n", index, side_lengths[index] ); 
    } 
 
    double x0s[NUM_SQUARES];
    x0s[0] = sq_x0;
-   printf( "x0s 0 is %f\n", x0s[0] ); 
    for( int index = 1; index < NUM_SQUARES; index++ ) {
       x0s[index] = sq_x0 + side_lengths[index-1] + x0s[index-1];
-      printf( "x0s %d is %f\n", index, x0s[index] ); 
    } 
 
    double y0s[NUM_SQUARES];
    for( int index = 0; index < NUM_SQUARES; index++ ) {
-      //y0s[index] = ( ( sq_y0 + side_lengths[index] ) * ( index + 1 ) );
       y0s[index] = sq_y0;
    } 
 
    for( int index = 0; index < NUM_SQUARES; index++ ) {
-      printf( "Side Length %d is %f\n", index, side_lengths[index] ); 
-      printf( "x0[%d] is %f\n", index, x0s[index] ); 
-      printf( "y0[%d] is %f\n", index, y0s[index] ); 
+      gen_square( pixels, width, height, side_lengths[index], x0s[index], 
+         y0s[index], colors[index] );
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      y0s[index] = ( 2 * sq_y0 ) + side_length ;
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      gen_square( pixels, width, height, side_lengths[index], x0s[index], 
+         y0s[index], colors[index] );
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      y0s[index] = ( 3 * sq_y0 ) + ( 2 * side_length );
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      gen_square( pixels, width, height, side_lengths[index], x0s[index], 
+         y0s[index], colors[index] );
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
+      y0s[index] = ( 4 * sq_y0 ) + ( 3 * side_length );
+   } 
+   
+   for( int index = 0; index < NUM_SQUARES; index++ ) {
       gen_square( pixels, width, height, side_lengths[index], x0s[index], 
          y0s[index], colors[index] );
    } 
